@@ -30,5 +30,5 @@ def getRealTimeInfo(token, registration_nr):
         raise SystemExit(err)
     except requests.exceptions.RequestException as err:
         raise SystemExit(err)
-    jprint(response.json())
+    #jprint(response.json())
     return response.json()

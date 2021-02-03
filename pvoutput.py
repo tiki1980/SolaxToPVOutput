@@ -36,5 +36,5 @@ def uploadToPvOutput(systemId, apikey, acPower, yieldTodayWh,uploadDate,uploadTi
         raise SystemExit(err)
     except requests.exceptions.RequestException as err:
         raise SystemExit(err)
-    print(response.status_code, response.text)
+    #print(response.status_code, response.text)
     return response.text
