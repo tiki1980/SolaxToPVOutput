@@ -6,11 +6,12 @@ Upload the latest reading from SolaxCloud https://www.solaxcloud.com/ to PvOutpu
 Pvoutput Api: https://pvoutput.org/help.html#api-addstatus
 Solaccloud Api: https://www.solaxcloud.com/#/api (you must be logged in)
 
-
 How to use:
 
-* Rename config.yml_rename_this to config.yml and fill with your own values
+* Copy config.yml_rename_this to config.yml and fill with your own values
+* * PVoutput API key and system id
+* * Solaxcloud registration nommer (not the serial number of the wifi module) + Api key. 
 * Install python dependencies: pip install pyyaml requests
-* Schedule main.py to run every 5 minutes
+* Schedule main.py to run every 5 minutes (or with the term you set in PVOutput)
 
-For now it prints the output of the api requests to the console, this will be removed in a future release
+It currently does only output errors, a feature release will include debug options
