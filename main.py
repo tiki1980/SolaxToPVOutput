@@ -1,13 +1,28 @@
+import logging
 from solaxCloud import getRealTimeInfo
 from config import get_config
 from pvoutput import uploadToPvOutput
 
-#solaxapi variables
+#get config file
 config = get_config()
+
+#enable logging
+numericLogLevel = getattr(logging, config["SolaxToPVOutput"]["logLevel"].upper(), 10)
+logging.basicConfig(
+        filename='solaxtopvoutput.log',
+        #encoding='utf-8', only supported in python 3.9
+        level=numericLogLevel,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+logger = logging.getLogger(__name__)
+#ignore urllib3 debug info if set
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.info(f'Started SolaxToPVOutput')
 
 #request latest reading from solaxcloud
 solaxData = getRealTimeInfo(config["SolaxCloud"]["tokenId"], config["SolaxCloud"]["registrationNr"])
 
+#if latest reading is succesfull
 if solaxData["success"] == 1:
     #get values from json
     yieldTodayKWh = solaxData["result"]["yieldtoday"]
@@ -22,6 +37,7 @@ if solaxData["success"] == 1:
 
     pvoutput = uploadToPvOutput(config["PVOutput"]["systemid"], config["PVOutput"]["apikey"], acPower, yieldTodayWh,uploadDate,uploadTime)
 else:
-    raise Exception("Solaxcloud returned Failure in Json")
+    logger.error("Solaxcloud returned Failure in Json")
+    logger.error(str(solaxData))
 
-
+logging.info(f'Finished SolaxToPVOutput')
