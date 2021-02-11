@@ -1,4 +1,5 @@
 import logging
+import os
 from solaxCloud import getRealTimeInfo
 from config import get_config
 from pvoutput import uploadToPvOutput
@@ -7,9 +8,12 @@ from pvoutput import uploadToPvOutput
 config = get_config()
 
 #enable logging
+#get log level from config file
 numericLogLevel = getattr(logging, config["SolaxToPVOutput"]["logLevel"].upper(), 10)
+#determine log path
+logFile = os.path.join(os.path.dirname(__file__),"solaxtopvoutput.log")
 logging.basicConfig(
-        filename='solaxtopvoutput.log',
+        filename=logFile,
         #encoding='utf-8', only supported in python 3.9
         level=numericLogLevel,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
