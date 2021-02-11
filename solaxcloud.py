@@ -2,6 +2,9 @@ import requests
 import os
 from urllib.parse import urljoin,urlencode
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 SOLAXCLOUD_URL = 'https://www.solaxcloud.com:9443/'
 
@@ -23,12 +26,14 @@ def build_api_url(token, sn):
 #getrealtime info api call
 def getRealTimeInfo(token, registration_nr):
     apiUrl = build_api_url(token, registration_nr)
+    logger.debug(f'Api url: {str(apiUrl)}')
     try:
         response = requests.get(apiUrl)
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
-        raise SystemExit(err)
+        logger.exception('HTTP Error')
     except requests.exceptions.RequestException as err:
-        raise SystemExit(err)
-    #jprint(response.json())
+        logger.exception('Exception occurred')
+    logger.info(f'HTTP Response status code: {str(response.status_code)}')
+    logger.debug(str(response.text))
     return response.json()
