@@ -1,6 +1,6 @@
 import logging
 import os
-from solaxCloud import getRealTimeInfo
+from solaxcloud import getRealTimeInfo
 from config import get_config
 from pvoutput import uploadToPvOutput
 
