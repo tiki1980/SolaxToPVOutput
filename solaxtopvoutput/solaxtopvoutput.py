@@ -11,7 +11,7 @@ config = get_config()
 #get log level from config file
 numericLogLevel = getattr(logging, config["SolaxToPVOutput"]["logLevel"].upper(), 10)
 #determine log path
-logFile = os.path.join(os.path.dirname(__file__),"solaxtopvoutput.log")
+logFile = os.path.join(os.path.dirname(__file__),"logs/solaxtopvoutput.log")
 logging.basicConfig(
         filename=logFile,
         #encoding='utf-8', only supported in python 3.9

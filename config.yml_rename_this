@@ -1,9 +1,0 @@
-SolaxToPVOutput:
-    logLevel: "WARNING" #DEBUG, INFO, WARNING, ERROR, CRITICAL
-SolaxCloud:
-    tokenId: 20210212345678912345678 #tokenid from solax cloud website. Look under api
-    registrationNr: "ABCDEFG9X0"  #registration number, get this from the solax cloud website. Be aware this is not the serial number of the wifi adapter
-PVOutput:
-    systemid: 123456 #systemId from PvOutput website
-    apikey: "abcdef1234567890abcdef1234567890abcdef12" #api key from pvoutput website
-
