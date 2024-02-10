@@ -1,7 +1,5 @@
 # SolaxToPVOutput
 
-My first python project, probably not the greatest code but it works :)
-
 Upload the latest reading from SolaxCloud <https://www.solaxcloud.com/> to PvOutput <https://pvoutput.org>
 
 Pvoutput Api: <https://pvoutput.org/help.html#api-addstatus>
