@@ -33,8 +33,9 @@ import requests
 
 # Changelog:
 # v0.2    10/Feb/24 Re-factored as a single file, added consumption data. Pylint score = 10/10
+# v0.3    10/Feb/24 added test for valid consumption data
 
-VERSION = "v0.2"
+VERSION = "v0.3"
 
 def jprint(obj):
     """ print json object for debugging purposes"""
@@ -125,10 +126,15 @@ if __name__ == '__main__':
             # "feedinenergy":9.64,  # Export energy today (kWh)
             # "consumeenergy":22.2,  # Lifetime import energy (while running)
 
-            gen_tot_wh = SolaxData["result"]["yieldtotal"] * 1000  # v1 = Lifetime energy gen
-            gen_pwr = SolaxData["result"]["acpower"]  # v2 = Power generation
-            cons_tot_wh = SolaxData["result"]["consumeenergy"] * 1000 # v3 = Energy consumption
-            con_pwr = min(gen_pwr - SolaxData["result"]["feedinpower"], 0)  # v4 = Power cons
+            gen_tot_wh: int = SolaxData["result"]["yieldtotal"] * 1000  # v1 = Lifetime energy gen
+            gen_pwr: int = SolaxData["result"]["acpower"]  # v2 = Power generation
+
+            cons_tot_wh: int = 0
+            con_pwr: int = 0
+            if SolaxData["result"]["consumeenergy"] is not None:
+                cons_tot_wh = SolaxData["result"]["consumeenergy"] * 1000 # v3 = Energy consumption
+            if SolaxData["result"]["feedinpower"] is not None:
+                con_pwr = min(gen_pwr - SolaxData["result"]["feedinpower"], 0)  # v4 = Power cons
 
             upld_date_time = SolaxData["result"]["uploadTime"]
             upld_date = upld_date_time[0:10].replace('-','')
