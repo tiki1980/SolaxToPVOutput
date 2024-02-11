@@ -134,7 +134,7 @@ if __name__ == '__main__':
             if SolaxData["result"]["consumeenergy"] is not None:
                 cons_tot_wh = SolaxData["result"]["consumeenergy"] * 1000 # v3 = Energy consumption
             if SolaxData["result"]["feedinpower"] is not None:
-                con_pwr = min(gen_pwr - SolaxData["result"]["feedinpower"], 0)  # v4 = Power cons
+                con_pwr = max(gen_pwr - SolaxData["result"]["feedinpower"], 0)  # v4 = Power cons
 
             upld_date_time = SolaxData["result"]["uploadTime"]
             upld_date = upld_date_time[0:10].replace('-','')
