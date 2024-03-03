@@ -34,7 +34,7 @@ import requests
 # Changelog:
 # v0.2    10/Feb/24 Re-factored as a single file, added consumption data. Pylint score = 10/10
 # v0.3    10/Feb/24 Aded test for valid consumption data
-# v0.4    03/Mar/24 Added overall "try" to prevent crash if network is unreachable
+# v0.4    03/Mar/24 Added dummy response and extra "try" to prevent crash if network unreachable
 
 VERSION = "v0.4"
 
@@ -53,7 +53,7 @@ def get_real_time_solax_data(token, registration_nr):
 
     dummy_response = {"success":False,"exception":"Query failure!","result":{"inverterSN":"","sn":"","acpower":0,"yieldtoday":0,"yieldtotal":0,"feedinpower":0,"feedinenergy":0,"consumeenergy":0,"feedinpowerM2":0,"soc":0,"peps1":0,"peps2":0,"peps3":0,"inverterType":"4","inverterStatus":"0","uploadTime":"1970-01-01 00:00:00","batPower":0,"powerdc1":0,"powerdc2":0,"powerdc3":0,"powerdc4":0,"batStatus":0},"code":0}
 
-    logger.debug("Api url: %s", str(api_url))down
+    logger.debug("Api url: %s", str(api_url))
     try:
         response = requests.get(api_url, timeout = 10)
         response.raise_for_status()
@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # Parse YAML configuration file
     with open(os.path.join(os.path.dirname(__file__),"config.yml"), "r", encoding='UTF-8') \
-        as yamlfile:down
+        as yamlfile:
         try:
             config = yaml.load(yamlfile, Loader=yaml.FullLoader)
         except yaml.YAMLError as err:
