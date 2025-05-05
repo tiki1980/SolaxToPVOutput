@@ -37,7 +37,7 @@ import requests
 # v0.4    03/Mar/24 Added dummy response and extra "try" to prevent crash if network unreachable
 # v0.5    05/May/25 Update to V2 Api
 
-VERSION = "v0.4"
+VERSION = "v0.5"
 
 def jprint(obj):
     """ print json object for debugging purposes"""
@@ -48,15 +48,23 @@ def jprint(obj):
 def get_real_time_solax_data(url, token, registration_nr):
     """ Real time data api call to Solax SolaxCloud"""
 
-    api_url = url + "/api/v2/dataAccess/realtimeInfo/get"
-    query = "?" + urlencode({"tokenId": token, "wifiSn": registration_nr})
-    api_url =  urljoin(api_url, query)
+    base_url = url.rstrip("/") # Remove trailing slash if present
+    api_url = f"{base_url}/api/v2/dataAccess/realtimeInfo/get"
+   
+    headers = {
+        'tokenId': f'{token}',
+        'Content-Type': 'application/json'
+    }
+
+    data = {
+        'wifiSn': f'{registration_nr}'
+    }
 
     dummy_response = {"success":False,"exception":"Query failure!","result":{"inverterSN":"","sn":"","acpower":0,"yieldtoday":0,"yieldtotal":0,"feedinpower":0,"feedinenergy":0,"consumeenergy":0,"feedinpowerM2":0,"soc":0,"peps1":0,"peps2":0,"peps3":0,"inverterType":"4","inverterStatus":"0","uploadTime":"1970-01-01 00:00:00","batPower":0,"powerdc1":0,"powerdc2":0,"powerdc3":0,"powerdc4":0,"batStatus":0},"code":0}
 
     logger.debug("Api url: %s", str(api_url))
     try:
-        response = requests.get(api_url, timeout = 10)
+        response = requests.get(api_url, headers=headers, json=data, timeout=10)
         response.raise_for_status()
     except requests.exceptions.HTTPError:
         logger.exception("HTTP Error")
