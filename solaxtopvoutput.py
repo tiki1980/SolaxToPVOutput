@@ -35,8 +35,9 @@ import requests
 # v0.2    10/Feb/24 Re-factored as a single file, added consumption data. Pylint score = 10/10
 # v0.3    10/Feb/24 Aded test for valid consumption data
 # v0.4    03/Mar/24 Added dummy response and extra "try" to prevent crash if network unreachable
+# v0.5    05/May/25 Update to V2 Api
 
-VERSION = "v0.4"
+VERSION = "v0.5"
 
 def jprint(obj):
     """ print json object for debugging purposes"""
@@ -44,18 +45,26 @@ def jprint(obj):
     text = json.dumps(obj, sort_keys=True, indent=4)
     print(text)
 
-def get_real_time_solax_data(token, registration_nr):
+def get_real_time_solax_data(url, token, registration_nr):
     """ Real time data api call to Solax SolaxCloud"""
 
-    api_url = "https://www.solaxcloud.com:9443/proxy/api/getRealtimeInfo.do"
-    query = "?" + urlencode({"tokenId": token, "sn": registration_nr})
-    api_url =  urljoin(api_url, query)
+    base_url = url.rstrip("/") # Remove trailing slash if present
+    api_url = f"{base_url}/api/v2/dataAccess/realtimeInfo/get"
+   
+    headers = {
+        'tokenId': f'{token}',
+        'Content-Type': 'application/json'
+    }
+
+    data = {
+        'wifiSn': f'{registration_nr}'
+    }
 
     dummy_response = {"success":False,"exception":"Query failure!","result":{"inverterSN":"","sn":"","acpower":0,"yieldtoday":0,"yieldtotal":0,"feedinpower":0,"feedinenergy":0,"consumeenergy":0,"feedinpowerM2":0,"soc":0,"peps1":0,"peps2":0,"peps3":0,"inverterType":"4","inverterStatus":"0","uploadTime":"1970-01-01 00:00:00","batPower":0,"powerdc1":0,"powerdc2":0,"powerdc3":0,"powerdc4":0,"batStatus":0},"code":0}
 
     logger.debug("Api url: %s", str(api_url))
     try:
-        response = requests.get(api_url, timeout = 10)
+        response = requests.get(api_url, headers=headers, json=data, timeout=10)
         response.raise_for_status()
     except requests.exceptions.HTTPError:
         logger.exception("HTTP Error")
@@ -118,7 +127,8 @@ if __name__ == '__main__':
     while True:
         try:
             # Request latest data from SolaxCloud
-            SolaxData = get_real_time_solax_data(config["SolaxCloud"]["tokenId"], \
+            SolaxData = get_real_time_solax_data(config["SolaxCloud"]["apiUrl"], \
+                config["SolaxCloud"]["tokenId"], \
                 config["SolaxCloud"]["registrationNr"])
 
             # If latest reading is successful, parse data and upload to PVOutput
