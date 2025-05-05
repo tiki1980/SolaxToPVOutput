@@ -35,6 +35,7 @@ import requests
 # v0.2    10/Feb/24 Re-factored as a single file, added consumption data. Pylint score = 10/10
 # v0.3    10/Feb/24 Aded test for valid consumption data
 # v0.4    03/Mar/24 Added dummy response and extra "try" to prevent crash if network unreachable
+# v0.5    05/May/25 Update to V2 Api
 
 VERSION = "v0.4"
 
