@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solaxtopvoutput"
+version = "0.6.0"
+description = "Poll SolaxCloud and upload inverter data to PVOutput."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+  {name = "Steve Lewis"},
+]
+dependencies = [
+  "PyYAML>=6.0,<7.0",
+  "requests>=2.31,<3.0",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0,<9.0",
+]
+dev = [
+  "black>=24.0,<25.0",
+  "ruff>=0.6,<0.7",
+  "pytest>=8.0,<9.0",
+]
+
+[project.scripts]
+solaxtopvoutput = "solaxtopvoutput.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 79
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
