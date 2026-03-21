@@ -42,6 +42,8 @@ SOLAX_DUMMY_RESPONSE: dict[str, Any] = {
     "code": 0,
 }
 
+MAX_BACKOFF_MULTIPLIER = 5
+
 
 @dataclass(frozen=True)
 class UploadResult:
@@ -175,27 +177,50 @@ def poll_once(
     )
 
 
+def calculate_sleep_seconds(
+    base_interval: int,
+    consecutive_failures: int,
+) -> int:
+    """Calculate the next polling delay with capped backoff."""
+
+    if consecutive_failures <= 0:
+        return base_interval
+
+    multiplier = min(2 ** (consecutive_failures - 1), MAX_BACKOFF_MULTIPLIER)
+    return base_interval * multiplier
+
+
 def run_forever(
     config: Config,
     logger: logging.Logger,
     session: requests.Session | None = None,
+    sleep_fn=time.sleep,
 ) -> int:
     """Run the poll-upload loop until interrupted."""
 
     active_session = session or requests.Session()
+    consecutive_failures = 0
     logger.info("Started SolaxToPVOutput")
     try:
         while True:
             try:
-                poll_once(config, active_session, logger)
+                result = poll_once(config, active_session, logger)
+                if result is None or not result.ok:
+                    consecutive_failures += 1
+                else:
+                    consecutive_failures = 0
             except ValueError:
+                consecutive_failures += 1
                 logger.exception(
                     "Invalid data received while processing a polling cycle"
                 )
-            logger.debug(
-                "Sleeping for %s seconds", config.app.poll_interval_seconds
+
+            sleep_seconds = calculate_sleep_seconds(
+                config.app.poll_interval_seconds,
+                consecutive_failures,
             )
-            time.sleep(config.app.poll_interval_seconds)
+            logger.debug("Sleeping for %s seconds", sleep_seconds)
+            sleep_fn(sleep_seconds)
     except KeyboardInterrupt:
         logger.info("Stopping SolaxToPVOutput")
         return 0
