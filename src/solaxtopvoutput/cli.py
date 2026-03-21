@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import signal
 from pathlib import Path
 
 import requests
@@ -48,6 +49,18 @@ def resolve_config_path(cli_path: Path | None) -> Path:
     return config_search_paths()[0]
 
 
+def install_signal_handlers() -> None:
+    """Install termination handlers for long-running process use."""
+
+    if not hasattr(signal, "SIGTERM"):
+        return
+
+    def _handle_termination(signum, _frame) -> None:
+        raise KeyboardInterrupt(f"Received signal {signum}")
+
+    signal.signal(signal.SIGTERM, _handle_termination)
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point."""
 
@@ -66,4 +79,5 @@ def main(argv: list[str] | None = None) -> int:
             result = poll_once(config, session, logger)
         return 0 if result is not None and result.ok else 1
 
+    install_signal_handlers()
     return run_forever(config, logger)

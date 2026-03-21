@@ -1,6 +1,7 @@
+import signal
 from pathlib import Path
 
-from solaxtopvoutput.cli import resolve_config_path
+from solaxtopvoutput.cli import install_signal_handlers, resolve_config_path
 
 
 def test_resolve_config_path_prefers_existing_user_path(
@@ -37,3 +38,18 @@ def test_resolve_config_path_uses_repo_fallback(
     resolved = resolve_config_path(None)
 
     assert resolved == repo_config
+
+
+def test_install_signal_handlers_registers_sigterm(monkeypatch) -> None:
+    captured = {}
+
+    def fake_signal(sig, handler):
+        captured["sig"] = sig
+        captured["handler"] = handler
+
+    monkeypatch.setattr(signal, "signal", fake_signal)
+
+    install_signal_handlers()
+
+    assert captured["sig"] == signal.SIGTERM
+    assert callable(captured["handler"])

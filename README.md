@@ -83,6 +83,27 @@ These environment variables override YAML values when set:
 For normal operation, keep non-secret defaults in YAML and provide secrets
 through environment variables.
 
+## Linux Notes
+
+On Linux the default user config path is:
+
+```bash
+~/.config/solaxtopvoutput/config.yml
+```
+
+The long-running process now handles `SIGTERM` cleanly, so it behaves well
+under `systemd`, Docker, and other service managers.
+
+Typical Linux setup:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+pytest
+solaxtopvoutput --once
+```
+
 ## Development
 
 Run formatting, linting, and tests with:
