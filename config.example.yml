@@ -17,5 +17,5 @@ SunWindow:
   latitude: 52.1326
   longitude: 5.2913
   timezone: "Europe/Amsterdam"
-  startEvent: "sunrise"
-  endEvent: "sunset"
+  startEvent: "sunrise" #or Dawn
+  endEvent: "sunset" # or Dusk
