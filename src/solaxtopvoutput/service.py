@@ -11,6 +11,7 @@ from typing import Any
 import requests
 
 from .config import Config, PVOutputConfig, SolaxCloudConfig
+from .sun_window import seconds_until_window_opens, should_poll_now
 
 SOLAX_DUMMY_RESPONSE: dict[str, Any] = {
     "success": False,
@@ -203,6 +204,15 @@ def run_forever(
     logger.info("Started SolaxToPVOutput")
     try:
         while True:
+            if not should_poll_now(config, logger):
+                sleep_seconds = seconds_until_window_opens(config)
+                logger.debug(
+                    "Outside configured sun window, sleeping for %s seconds",
+                    sleep_seconds,
+                )
+                sleep_fn(sleep_seconds)
+                continue
+
             try:
                 result = poll_once(config, active_session, logger)
                 if result is None or not result.ok:

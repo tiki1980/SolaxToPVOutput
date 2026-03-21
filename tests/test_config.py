@@ -10,25 +10,33 @@ from solaxtopvoutput.config import (
 )
 
 
-def write_config(path: Path) -> None:
-    path.write_text(
-        "\n".join(
+def write_config(path: Path, include_sun_window: bool = False) -> None:
+    lines = [
+        "SolaxToPVOutput:",
+        "  logLevel: INFO",
+        "  pollIntervalSeconds: 60",
+        "  logFile: app.log",
+        "SolaxCloud:",
+        "  apiUrl: https://global.solaxcloud.com",
+        "  tokenId: token",
+        "  registrationNr: wifi",
+        "PVOutput:",
+        "  systemid: 123",
+        "  apikey: key",
+    ]
+    if include_sun_window:
+        lines.extend(
             [
-                "SolaxToPVOutput:",
-                "  logLevel: INFO",
-                "  pollIntervalSeconds: 60",
-                "  logFile: app.log",
-                "SolaxCloud:",
-                "  apiUrl: https://global.solaxcloud.com",
-                "  tokenId: token",
-                "  registrationNr: wifi",
-                "PVOutput:",
-                "  systemid: 123",
-                "  apikey: key",
+                "SunWindow:",
+                "  enabled: true",
+                "  latitude: 52.1326",
+                "  longitude: 5.2913",
+                "  timezone: Europe/Amsterdam",
+                "  startEvent: dawn",
+                "  endEvent: sunset",
             ]
-        ),
-        encoding="utf-8",
-    )
+        )
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def test_load_config_reads_expected_values(workspace_tmp_path: Path) -> None:
@@ -43,6 +51,21 @@ def test_load_config_reads_expected_values(workspace_tmp_path: Path) -> None:
     assert config.solax_cloud.registration_nr == "wifi"
     assert config.pvoutput.system_id == 123
     assert config.log_path == workspace_tmp_path / "app.log"
+    assert config.sun_window.enabled is False
+
+
+def test_load_config_reads_sun_window(workspace_tmp_path: Path) -> None:
+    config_path = workspace_tmp_path / "config.yml"
+    write_config(config_path, include_sun_window=True)
+
+    config = load_config(config_path)
+
+    assert config.sun_window.enabled is True
+    assert config.sun_window.latitude == pytest.approx(52.1326)
+    assert config.sun_window.longitude == pytest.approx(5.2913)
+    assert config.sun_window.timezone == "Europe/Amsterdam"
+    assert config.sun_window.start_event == "dawn"
+    assert config.sun_window.end_event == "sunset"
 
 
 def test_load_config_applies_environment_overrides(
@@ -82,6 +105,34 @@ def test_load_config_rejects_invalid_log_level(
     )
 
     with pytest.raises(ValueError, match="Invalid log level"):
+        load_config(config_path)
+
+
+def test_load_config_rejects_invalid_sun_window(
+    workspace_tmp_path: Path,
+) -> None:
+    config_path = workspace_tmp_path / "config.yml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "SolaxToPVOutput:",
+                "  logLevel: INFO",
+                "SolaxCloud:",
+                "  apiUrl: https://global.solaxcloud.com",
+                "  tokenId: token",
+                "  registrationNr: wifi",
+                "PVOutput:",
+                "  systemid: 123",
+                "  apikey: key",
+                "SunWindow:",
+                "  enabled: true",
+                "  startEvent: moonrise",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="SunWindow.startEvent"):
         load_config(config_path)
 
 

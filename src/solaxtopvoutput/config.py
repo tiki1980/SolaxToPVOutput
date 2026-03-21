@@ -8,6 +8,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import yaml
 
@@ -22,6 +23,8 @@ ENV_SOLAX_TOKEN_ID = "SOLAXCLOUD_TOKEN_ID"
 ENV_SOLAX_REGISTRATION_NR = "SOLAXCLOUD_REGISTRATION_NR"
 ENV_PVOUTPUT_SYSTEM_ID = "PVOUTPUT_SYSTEM_ID"
 ENV_PVOUTPUT_API_KEY = "PVOUTPUT_API_KEY"
+VALID_START_EVENTS = {"dawn", "sunrise"}
+VALID_END_EVENTS = {"sunset", "dusk"}
 
 
 @dataclass(frozen=True)
@@ -51,12 +54,25 @@ class PVOutputConfig:
 
 
 @dataclass(frozen=True)
+class SunWindowConfig:
+    """Optional sun-based execution window configuration."""
+
+    enabled: bool = False
+    latitude: float | None = None
+    longitude: float | None = None
+    timezone: str | None = None
+    start_event: str = "sunrise"
+    end_event: str = "sunset"
+
+
+@dataclass(frozen=True)
 class Config:
     """Top-level application configuration."""
 
     app: AppConfig
     solax_cloud: SolaxCloudConfig
     pvoutput: PVOutputConfig
+    sun_window: SunWindowConfig
     config_path: Path
 
     @property
@@ -110,6 +126,7 @@ def load_config(path: Path) -> Config:
     app_section = _require_mapping(raw_config, "SolaxToPVOutput")
     solax_section = _require_mapping(raw_config, "SolaxCloud")
     pvoutput_section = _require_mapping(raw_config, "PVOutput")
+    sun_window_section = _optional_mapping(raw_config, "SunWindow")
 
     app_data = _merge_app_config(app_section)
     solax_data = _merge_solax_config(solax_section)
@@ -126,6 +143,7 @@ def load_config(path: Path) -> Config:
         )
 
     _validate_log_level(app.log_level)
+    sun_window = _build_sun_window_config(sun_window_section)
 
     return Config(
         app=app,
@@ -138,7 +156,51 @@ def load_config(path: Path) -> Config:
             system_id=int(_require_value(pvoutput_data, "systemid")),
             api_key=str(_require_value(pvoutput_data, "apikey")),
         ),
+        sun_window=sun_window,
         config_path=path,
+    )
+
+
+def _build_sun_window_config(section: Mapping[str, object]) -> SunWindowConfig:
+    enabled = _parse_bool(section.get("enabled", False))
+    start_event = str(section.get("startEvent", "sunrise")).lower()
+    end_event = str(section.get("endEvent", "sunset")).lower()
+
+    if start_event not in VALID_START_EVENTS:
+        valid_start_events = sorted(VALID_START_EVENTS)
+        raise ValueError(
+            "SunWindow.startEvent must be one of: " f"{valid_start_events}"
+        )
+    if end_event not in VALID_END_EVENTS:
+        valid_end_events = sorted(VALID_END_EVENTS)
+        raise ValueError(
+            "SunWindow.endEvent must be one of: " f"{valid_end_events}"
+        )
+
+    latitude = _optional_float(section.get("latitude"))
+    longitude = _optional_float(section.get("longitude"))
+    timezone = _optional_string(section.get("timezone"))
+
+    if enabled:
+        if latitude is None or longitude is None or timezone is None:
+            raise ValueError(
+                "SunWindow requires latitude, longitude, and timezone "
+                "when enabled"
+            )
+        try:
+            ZoneInfo(timezone)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(
+                f"Invalid SunWindow.timezone value: {timezone}"
+            ) from exc
+
+    return SunWindowConfig(
+        enabled=enabled,
+        latitude=latitude,
+        longitude=longitude,
+        timezone=timezone,
+        start_event=start_event,
+        end_event=end_event,
     )
 
 
@@ -198,11 +260,44 @@ def _require_mapping(raw_config: dict, section: str) -> dict:
     return value
 
 
+def _optional_mapping(raw_config: dict, section: str) -> dict:
+    value = raw_config.get(section, {})
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"Missing or invalid config section: {section}")
+    return value
+
+
 def _require_value(section: Mapping[str, object], key: str) -> object:
     value = section.get(key)
     if value in (None, ""):
         raise ValueError(f"Missing config value: {key}")
     return value
+
+
+def _optional_float(value: object) -> float | None:
+    if value in (None, ""):
+        return None
+    return float(value)
+
+
+def _optional_string(value: object) -> str | None:
+    if value in (None, ""):
+        return None
+    return str(value)
+
+
+def _parse_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return bool(value)
 
 
 def _validate_log_level(log_level: str) -> None:

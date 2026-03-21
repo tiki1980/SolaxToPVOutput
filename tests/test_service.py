@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -7,6 +9,7 @@ from solaxtopvoutput.config import (
     Config,
     PVOutputConfig,
     SolaxCloudConfig,
+    SunWindowConfig,
 )
 from solaxtopvoutput.service import (
     UploadResult,
@@ -15,6 +18,10 @@ from solaxtopvoutput.service import (
     get_real_time_solax_data,
     run_forever,
     upload_to_pvoutput,
+)
+from solaxtopvoutput.sun_window import (
+    seconds_until_window_opens,
+    should_poll_now,
 )
 
 
@@ -72,6 +79,24 @@ class SequencePoller:
         if isinstance(result, BaseException):
             raise result
         return result
+
+
+def build_config(*, sun_window: SunWindowConfig | None = None) -> Config:
+    return Config(
+        app=AppConfig(
+            log_level="INFO",
+            poll_interval_seconds=60,
+            log_file="test.log",
+        ),
+        solax_cloud=SolaxCloudConfig(
+            api_url="https://global.solaxcloud.com",
+            token_id="token",
+            registration_nr="wifi",
+        ),
+        pvoutput=PVOutputConfig(system_id=123, api_key="key"),
+        sun_window=sun_window or SunWindowConfig(),
+        config_path="dummy.yml",
+    )
 
 
 def test_build_pvoutput_payload_maps_fields() -> None:
@@ -140,23 +165,103 @@ def test_upload_to_pvoutput_returns_failure_without_unbound_error() -> None:
     assert "boom" in result.text
 
 
-def test_run_forever_uses_backoff_after_repeated_failures(
-    monkeypatch,
-) -> None:
-    config = Config(
-        app=AppConfig(
-            log_level="INFO",
-            poll_interval_seconds=60,
-            log_file="test.log",
-        ),
-        solax_cloud=SolaxCloudConfig(
-            api_url="https://global.solaxcloud.com",
-            token_id="token",
-            registration_nr="wifi",
-        ),
-        pvoutput=PVOutputConfig(system_id=123, api_key="key"),
-        config_path="dummy.yml",
+def test_should_poll_now_obeys_window(monkeypatch) -> None:
+    config = build_config(
+        sun_window=SunWindowConfig(
+            enabled=True,
+            latitude=52.1326,
+            longitude=5.2913,
+            timezone="Europe/Amsterdam",
+            start_event="dawn",
+            end_event="sunset",
+        )
     )
+    logger = logging.getLogger("test")
+    timezone = ZoneInfo("Europe/Amsterdam")
+
+    monkeypatch.setattr(
+        "solaxtopvoutput.sun_window._sun_window_for_date",
+        lambda config, _: {
+            "dawn": datetime(2026, 3, 21, 6, 0, tzinfo=timezone),
+            "sunrise": datetime(2026, 3, 21, 6, 30, tzinfo=timezone),
+            "sunset": datetime(2026, 3, 21, 18, 30, tzinfo=timezone),
+            "dusk": datetime(2026, 3, 21, 19, 0, tzinfo=timezone),
+        },
+    )
+
+    assert should_poll_now(
+        config,
+        logger,
+        now=datetime(2026, 3, 21, 12, 0, tzinfo=timezone),
+    )
+    assert not should_poll_now(
+        config,
+        logger,
+        now=datetime(2026, 3, 21, 5, 0, tzinfo=timezone),
+    )
+
+
+def test_seconds_until_window_opens_returns_next_start(monkeypatch) -> None:
+    config = build_config(
+        sun_window=SunWindowConfig(
+            enabled=True,
+            latitude=52.1326,
+            longitude=5.2913,
+            timezone="Europe/Amsterdam",
+            start_event="sunrise",
+            end_event="sunset",
+        )
+    )
+    timezone = ZoneInfo("Europe/Amsterdam")
+
+    monkeypatch.setattr(
+        "solaxtopvoutput.sun_window._sun_window_for_date",
+        lambda config, target_date: {
+            "dawn": datetime(
+                target_date.year,
+                target_date.month,
+                target_date.day,
+                6,
+                0,
+                tzinfo=timezone,
+            ),
+            "sunrise": datetime(
+                target_date.year,
+                target_date.month,
+                target_date.day,
+                6,
+                30,
+                tzinfo=timezone,
+            ),
+            "sunset": datetime(
+                target_date.year,
+                target_date.month,
+                target_date.day,
+                18,
+                30,
+                tzinfo=timezone,
+            ),
+            "dusk": datetime(
+                target_date.year,
+                target_date.month,
+                target_date.day,
+                19,
+                0,
+                tzinfo=timezone,
+            ),
+        },
+    )
+
+    seconds = seconds_until_window_opens(
+        config,
+        now=datetime(2026, 3, 21, 5, 30, tzinfo=timezone),
+    )
+
+    assert seconds == 3600
+
+
+def test_run_forever_uses_backoff_after_repeated_failures(monkeypatch) -> None:
+    config = build_config()
     logger = logging.getLogger("test")
     sleeps = []
     poller = SequencePoller(
@@ -179,3 +284,45 @@ def test_run_forever_uses_backoff_after_repeated_failures(
 
     assert exit_code == 0
     assert sleeps == [60, 120, 240]
+
+
+def test_run_forever_skips_polling_outside_sun_window(monkeypatch) -> None:
+    config = build_config(
+        sun_window=SunWindowConfig(
+            enabled=True,
+            latitude=52.1326,
+            longitude=5.2913,
+            timezone="Europe/Amsterdam",
+            start_event="sunrise",
+            end_event="sunset",
+        )
+    )
+    logger = logging.getLogger("test")
+    sleeps = []
+
+    monkeypatch.setattr(
+        "solaxtopvoutput.service.should_poll_now",
+        lambda config, logger: False,
+    )
+    monkeypatch.setattr(
+        "solaxtopvoutput.service.seconds_until_window_opens",
+        lambda config: 1800,
+    )
+    monkeypatch.setattr(
+        "solaxtopvoutput.service.poll_once",
+        lambda config, session, logger: UploadResult(True, 200, "OK"),
+    )
+
+    def fake_sleep(seconds):
+        sleeps.append(seconds)
+        raise KeyboardInterrupt
+
+    exit_code = run_forever(
+        config,
+        logger,
+        session=DummySession(),
+        sleep_fn=fake_sleep,
+    )
+
+    assert exit_code == 0
+    assert sleeps == [1800]

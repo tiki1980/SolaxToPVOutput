@@ -11,3 +11,11 @@ SolaxCloud:
 PVOutput:
   systemid: 123456
   apikey: "set-this-in-config-or-env"
+
+SunWindow:
+  enabled: true
+  latitude: 52.1326
+  longitude: 5.2913
+  timezone: "Europe/Amsterdam"
+  startEvent: "sunrise"
+  endEvent: "sunset"
