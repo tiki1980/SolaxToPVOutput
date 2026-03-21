@@ -66,6 +66,12 @@ PVOutput:
 
 Relative `logFile` paths are resolved relative to the selected config file.
 
+## Runtime Behavior
+
+Successful polls run at the configured interval. Repeated failures back off
+progressively up to 5x the configured interval, then return to the normal
+cadence after a successful sync.
+
 ## Environment Overrides
 
 These environment variables override YAML values when set:

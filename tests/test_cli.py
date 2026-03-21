@@ -1,7 +1,12 @@
 import signal
 from pathlib import Path
 
-from solaxtopvoutput.cli import install_signal_handlers, resolve_config_path
+from solaxtopvoutput.cli import (
+    install_signal_handlers,
+    main,
+    resolve_config_path,
+)
+from solaxtopvoutput.service import UploadResult
 
 
 def test_resolve_config_path_prefers_existing_user_path(
@@ -53,3 +58,46 @@ def test_install_signal_handlers_registers_sigterm(monkeypatch) -> None:
 
     assert captured["sig"] == signal.SIGTERM
     assert callable(captured["handler"])
+
+
+def test_main_once_uses_configured_log_path(
+    workspace_tmp_path: Path,
+    monkeypatch,
+) -> None:
+    config_path = workspace_tmp_path / "config.yml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "SolaxToPVOutput:",
+                "  logLevel: INFO",
+                "  pollIntervalSeconds: 60",
+                "  logFile: cli.log",
+                "SolaxCloud:",
+                "  apiUrl: https://global.solaxcloud.com",
+                "  tokenId: token",
+                "  registrationNr: wifi",
+                "PVOutput:",
+                "  systemid: 123",
+                "  apikey: key",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    class DummySession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr("solaxtopvoutput.cli.requests.Session", DummySession)
+    monkeypatch.setattr(
+        "solaxtopvoutput.cli.poll_once",
+        lambda config, session, logger: UploadResult(True, 200, "OK"),
+    )
+
+    exit_code = main(["--once", "--config", str(config_path)])
+
+    assert exit_code == 0
+    assert (workspace_tmp_path / "cli.log").exists()
