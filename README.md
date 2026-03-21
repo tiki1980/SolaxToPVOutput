@@ -62,9 +62,31 @@ SolaxCloud:
 PVOutput:
   systemid: 123456
   apikey: "your-pvoutput-api-key"
+
+SunWindow:
+  enabled: false
+  latitude: 52.1326
+  longitude: 5.2913
+  timezone: "Europe/Amsterdam"
+  startEvent: "sunrise"
+  endEvent: "sunset"
 ```
 
 Relative `logFile` paths are resolved relative to the selected config file.
+
+## Sun Window
+
+Issue #3 requested limiting checks to solar-active hours. When `SunWindow`
+is enabled, the app only polls between the configured start and end solar
+markers using `astral`.
+
+Supported events:
+
+- `startEvent`: `dawn` or `sunrise`
+- `endEvent`: `sunset` or `dusk`
+
+Outside the active window, the app skips API calls and sleeps until the next
+window opens.
 
 ## Runtime Behavior
 

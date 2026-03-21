@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "solaxtopvoutput"
-version = "0.6.0"
+version = "0.7.0"
 description = "Poll SolaxCloud and upload inverter data to PVOutput."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -13,6 +13,7 @@ authors = [
   {name = "Steve Lewis"},
 ]
 dependencies = [
+  "astral>=3.2,<4.0",
   "PyYAML>=6.0,<7.0",
   "requests>=2.31,<3.0",
 ]
