@@ -1,0 +1,13 @@
+SolaxToPVOutput:
+  logLevel: "WARNING"
+  pollIntervalSeconds: 300
+  logFile: "solaxtopvoutput.log"
+
+SolaxCloud:
+  apiUrl: "https://global.solaxcloud.com"
+  tokenId: "set-this-in-config-or-env"
+  registrationNr: "set-this-in-config-or-env"
+
+PVOutput:
+  systemid: 123456
+  apikey: "set-this-in-config-or-env"

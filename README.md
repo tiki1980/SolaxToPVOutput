@@ -1,19 +1,115 @@
 # SolaxToPVOutput
 
-My first python project, probably not the greatest code but it works :)
+Poll SolaxCloud and upload the latest inverter data to PVOutput.
 
-Upload the latest reading from SolaxCloud <https://www.solaxcloud.com/> to PvOutput <https://pvoutput.org>
+PVOutput API: <https://pvoutput.org/help.html#api-addstatus>  
+SolaxCloud API: <https://www.solaxcloud.com/#/api>
 
-Pvoutput Api: <https://pvoutput.org/help.html#api-addstatus>
-Solaccloud Api: <https://www.solaxcloud.com/#/api> (you must be logged in)
+## Setup
 
-How to use:
+1. Create and activate a virtual environment.
+2. Install the project in editable mode:
 
-* Copy docs/solaxtopvoutput.yml_and place it in the solavtopvoutput folder and fill with your own values
-  * PVoutput API key and system id
-  * Solaxcloud registration number (not the serial number of the wifi module) + Api key.
-  * For debugging purposes one can set the logging level in the YAML file. Default is Warning.
-* Install python dependencies: pip install pyyaml requests
-* Schedule solaxtopvoutput.py to run every 5 minutes (or with the term you set in PVOutput)
+```bash
+pip install -e .[dev]
+```
 
-A log is created in solaxtopvoutput/logs/solaxtopvoutput.log
+3. Copy `config.example.yml` to one of these locations:
+
+- `%APPDATA%\\SolaxToPVOutput\\config.yml` on Windows
+- `~/.config/solaxtopvoutput/config.yml` on Linux and macOS
+- `./config.yml` in the repo as a local fallback
+
+4. Fill in your real values or provide the secrets through environment
+   variables.
+5. Run a single sync for validation:
+
+```bash
+solaxtopvoutput --once
+```
+
+6. Run the long-lived polling process:
+
+```bash
+solaxtopvoutput
+```
+
+You can always override the config path explicitly:
+
+```bash
+solaxtopvoutput --config path/to/config.yml
+```
+
+The app checks config files in this order:
+
+1. `SOLAXTOPVOUTPUT_CONFIG` if set
+2. the per-user config file
+3. `./config.yml`
+
+## Configuration
+
+```yaml
+SolaxToPVOutput:
+  logLevel: "WARNING"
+  pollIntervalSeconds: 300
+  logFile: "solaxtopvoutput.log"
+
+SolaxCloud:
+  apiUrl: "https://global.solaxcloud.com"
+  tokenId: "your-solax-token"
+  registrationNr: "your-wifi-registration-number"
+
+PVOutput:
+  systemid: 123456
+  apikey: "your-pvoutput-api-key"
+```
+
+Relative `logFile` paths are resolved relative to the selected config file.
+
+## Environment Overrides
+
+These environment variables override YAML values when set:
+
+- `SOLAXTOPVOUTPUT_CONFIG`
+- `SOLAXTOPVOUTPUT_LOG_LEVEL`
+- `SOLAXTOPVOUTPUT_POLL_INTERVAL_SECONDS`
+- `SOLAXTOPVOUTPUT_LOG_FILE`
+- `SOLAXCLOUD_API_URL`
+- `SOLAXCLOUD_TOKEN_ID`
+- `SOLAXCLOUD_REGISTRATION_NR`
+- `PVOUTPUT_SYSTEM_ID`
+- `PVOUTPUT_API_KEY`
+
+For normal operation, keep non-secret defaults in YAML and provide secrets
+through environment variables.
+
+## Linux Notes
+
+On Linux the default user config path is:
+
+```bash
+~/.config/solaxtopvoutput/config.yml
+```
+
+The long-running process now handles `SIGTERM` cleanly, so it behaves well
+under `systemd`, Docker, and other service managers.
+
+Typical Linux setup:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+pytest
+solaxtopvoutput --once
+```
+
+## Development
+
+Run formatting, linting, and tests with:
+
+```bash
+black src tests
+ruff check src tests
+pytest
+```
