@@ -14,7 +14,7 @@ authors = [
 ]
 dependencies = [
   "astral>=3.2,<4.0",
-  "PyYAML>=6.0,<7.0",
+  "PyYAML>=6.0.3,<7.0",
   "requests>=2.31,<3.0",
 ]
 
