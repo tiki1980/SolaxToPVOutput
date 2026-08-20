@@ -1,4 +1,5 @@
 import signal
+import sys
 from pathlib import Path
 
 from solaxtopvoutput.cli import (
@@ -9,10 +10,12 @@ from solaxtopvoutput.cli import (
 from solaxtopvoutput.service import UploadResult
 
 
-def test_resolve_config_path_prefers_existing_user_path(
+def test_resolve_config_path_prefers_existing_user_path_windows(
     workspace_tmp_path: Path,
     monkeypatch,
 ) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+
     user_config_dir = workspace_tmp_path / "SolaxToPVOutput"
     user_config_dir.mkdir()
     user_config = user_config_dir / "config.yml"
@@ -28,16 +31,58 @@ def test_resolve_config_path_prefers_existing_user_path(
     assert resolved == user_config
 
 
-def test_resolve_config_path_uses_repo_fallback(
+def test_resolve_config_path_prefers_existing_user_path_posix(
     workspace_tmp_path: Path,
     monkeypatch,
 ) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+
+    user_config_dir = workspace_tmp_path / "solaxtopvoutput"
+    user_config_dir.mkdir()
+    user_config = user_config_dir / "config.yml"
+    user_config.write_text("test", encoding="utf-8")
+
+    repo_dir = workspace_tmp_path / "repo"
+    repo_dir.mkdir()
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(workspace_tmp_path))
+    monkeypatch.chdir(repo_dir)
+
+    resolved = resolve_config_path(None)
+
+    assert resolved == user_config
+
+
+def test_resolve_config_path_uses_repo_fallback_windows(
+    workspace_tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+
     repo_dir = workspace_tmp_path / "repo"
     repo_dir.mkdir()
     repo_config = repo_dir / "config.yml"
     repo_config.write_text("test", encoding="utf-8")
 
-    monkeypatch.delenv("APPDATA", raising=False)
+    monkeypatch.setenv("APPDATA", str(workspace_tmp_path / "appdata"))
+    monkeypatch.chdir(repo_dir)
+
+    resolved = resolve_config_path(None)
+
+    assert resolved == repo_config
+
+
+def test_resolve_config_path_uses_repo_fallback_posix(
+    workspace_tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+
+    repo_dir = workspace_tmp_path / "repo"
+    repo_dir.mkdir()
+    repo_config = repo_dir / "config.yml"
+    repo_config.write_text("test", encoding="utf-8")
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(workspace_tmp_path / "xdg"))
     monkeypatch.chdir(repo_dir)
 
     resolved = resolve_config_path(None)
