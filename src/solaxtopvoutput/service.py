@@ -219,10 +219,10 @@ def run_forever(
                     consecutive_failures += 1
                 else:
                     consecutive_failures = 0
-            except ValueError:
+            except Exception:
                 consecutive_failures += 1
                 logger.exception(
-                    "Invalid data received while processing a polling cycle"
+                    "Unexpected error while processing a polling cycle"
                 )
 
             sleep_seconds = calculate_sleep_seconds(
