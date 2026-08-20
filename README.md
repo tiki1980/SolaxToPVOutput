@@ -180,10 +180,14 @@ sudo chmod 640 /etc/solaxtopvoutput/env
 4. Validate the configuration before wiring up the service:
 
 ```bash
-sudo -u solaxtopvoutput --preserve-env bash -c \
+sudo -u solaxtopvoutput bash -c \
     'set -a; source /etc/solaxtopvoutput/env; set +a; \
      /opt/solaxtopvoutput/app/.venv/bin/solaxtopvoutput --once'
 ```
+
+Do not add `--preserve-env` here: it keeps your calling shell's `$HOME`
+instead of switching to the `solaxtopvoutput` user's home directory, which
+makes the app look for its config under the wrong (and unreadable) path.
 
 5. Create the unit file at `/etc/systemd/system/solaxtopvoutput.service`:
 
