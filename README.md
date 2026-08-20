@@ -191,6 +191,10 @@ makes the app look for its config under the wrong (and unreadable) path.
 
 5. Create the unit file at `/etc/systemd/system/solaxtopvoutput.service`:
 
+```bash
+sudo nano /etc/systemd/system/solaxtopvoutput.service
+```
+
 ```ini
 [Unit]
 Description=SolaxToPVOutput
@@ -223,8 +227,8 @@ sudo systemctl enable --now solaxtopvoutput
 7. Check status and logs:
 
 ```bash
-systemctl status solaxtopvoutput
-journalctl -u solaxtopvoutput -f
+sudo systemctl status solaxtopvoutput
+sudo journalctl -u solaxtopvoutput -f
 ```
 
 To pick up code changes later, pull the repo, reinstall into the venv, and
