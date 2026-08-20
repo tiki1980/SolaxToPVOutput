@@ -132,6 +132,106 @@ pytest
 solaxtopvoutput --once
 ```
 
+## Running as a systemd Service (Debian)
+
+These steps target a current Debian stable release (also applies to
+Debian-derived systems such as DietPi). `run_forever` already handles the
+polling interval, backoff, and sun window internally, so systemd only needs
+to keep the process alive — no cron or timer unit required.
+
+1. Create a dedicated system user and install location:
+
+```bash
+sudo useradd --system --create-home --home-dir /opt/solaxtopvoutput solaxtopvoutput
+sudo -u solaxtopvoutput git clone <your-repo-url> /opt/solaxtopvoutput/app
+```
+
+2. Create a virtual environment and install the app:
+
+```bash
+sudo -u solaxtopvoutput python3 -m venv /opt/solaxtopvoutput/app/.venv
+sudo -u solaxtopvoutput /opt/solaxtopvoutput/app/.venv/bin/pip install /opt/solaxtopvoutput/app
+```
+
+3. Add configuration. Keep non-secret settings (`pollIntervalSeconds`,
+   `SunWindow`, etc.) in the per-user config file, and keep secrets out of
+   it — they go in a separate env file loaded by systemd:
+
+```bash
+sudo -u solaxtopvoutput mkdir -p /opt/solaxtopvoutput/.config/solaxtopvoutput
+sudo -u solaxtopvoutput cp /opt/solaxtopvoutput/app/config.example.yml \
+    /opt/solaxtopvoutput/.config/solaxtopvoutput/config.yml
+sudo mkdir -p /etc/solaxtopvoutput
+sudo nano /etc/solaxtopvoutput/env
+```
+
+```
+SOLAXCLOUD_TOKEN_ID=your-solax-token
+SOLAXCLOUD_REGISTRATION_NR=your-wifi-registration-number
+PVOUTPUT_SYSTEM_ID=123456
+PVOUTPUT_API_KEY=your-pvoutput-api-key
+```
+
+```bash
+sudo chown root:solaxtopvoutput /etc/solaxtopvoutput/env
+sudo chmod 640 /etc/solaxtopvoutput/env
+```
+
+4. Validate the configuration before wiring up the service:
+
+```bash
+sudo -u solaxtopvoutput --preserve-env bash -c \
+    'set -a; source /etc/solaxtopvoutput/env; set +a; \
+     /opt/solaxtopvoutput/app/.venv/bin/solaxtopvoutput --once'
+```
+
+5. Create the unit file at `/etc/systemd/system/solaxtopvoutput.service`:
+
+```ini
+[Unit]
+Description=SolaxToPVOutput
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=solaxtopvoutput
+Group=solaxtopvoutput
+EnvironmentFile=/etc/solaxtopvoutput/env
+ExecStart=/opt/solaxtopvoutput/app/.venv/bin/solaxtopvoutput
+Restart=on-failure
+RestartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/solaxtopvoutput/.config/solaxtopvoutput
+
+[Install]
+WantedBy=multi-user.target
+```
+
+6. Enable and start it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now solaxtopvoutput
+```
+
+7. Check status and logs:
+
+```bash
+systemctl status solaxtopvoutput
+journalctl -u solaxtopvoutput -f
+```
+
+To pick up code changes later, pull the repo, reinstall into the venv, and
+restart the service:
+
+```bash
+sudo -u solaxtopvoutput git -C /opt/solaxtopvoutput/app pull
+sudo -u solaxtopvoutput /opt/solaxtopvoutput/app/.venv/bin/pip install /opt/solaxtopvoutput/app
+sudo systemctl restart solaxtopvoutput
+```
+
 ## Development
 
 Run formatting, linting, and tests with:
