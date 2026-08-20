@@ -14,7 +14,7 @@ authors = [
 ]
 dependencies = [
   "astral>=3.2,<4.0",
-  "PyYAML>=6.0,<7.0",
+  "PyYAML>=6.0.3,<7.0",
   "requests>=2.31,<3.0",
 ]
 
@@ -24,7 +24,7 @@ test = [
 ]
 dev = [
   "black>=24.0,<27.0",
-  "ruff>=0.6,<0.17",
+  "ruff>=0.15.10,<0.17",
   "pytest>=8.0,<10.0",
 ]
 
