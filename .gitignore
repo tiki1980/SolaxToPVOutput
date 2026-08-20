@@ -113,6 +113,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# venv created directly in the project root (python -m venv .)
+/Include/
+/Lib/
+/Scripts/
+/pyvenv.cfg
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -133,3 +139,15 @@ dmypy.json
 
 pip_tmp/
 
+# uv
+uv.lock
+
+# Editors / IDEs
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
